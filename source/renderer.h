@@ -1,4 +1,6 @@
+#pragma once
 
+#include "Level.h"
 // Used to print debug infomation from OpenGL, pulled straight from the official OpenGL wiki.
 #ifndef NDEBUG
 void MessageCallback(GLenum source, GLenum type, GLuint id,
@@ -9,6 +11,18 @@ void MessageCallback(GLenum source, GLenum type, GLuint id,
 }
 #endif
 
+struct SCENE_DATA
+{
+	GW::MATH::GMATRIXF view_matrix;
+	GW::MATH::GMATRIXF projection_matrix;
+	GW::MATH::GVECTORF camera_pos;
+};
+
+struct MESH_DATA
+{
+	GW::MATH::GMATRIXF world_matrix;
+	H2B::ATTRIBUTES material;
+};
 
 // Creation, Rendering & Cleanup
 class Renderer
@@ -16,15 +30,22 @@ class Renderer
 	// proxy handles
 	GW::SYSTEM::GWindow win;
 	GW::GRAPHICS::GOpenGLSurface ogl;
-	// what we need at a minimum to draw a triangle
-	GLuint vertex_array_object = 0;
-	GLuint vertex_buffer_object = 0;
-	GLuint index_buffer_object = 0;
 
+	// what we need at a minimum to draw a triangle
+	//GLuint vertex_array_object = 0;
+	//GLuint vertex_buffer_object = 0;
+	//GLuint index_buffer_object = 0;
+
+	Level testLevel;
+
+	MESH_DATA mesh_data;
+	SCENE_DATA scene_data;
 
 	GLuint vertex_shader = 0;
 	GLuint fragment_shader = 0;
 	GLuint shader_program = 0;
+	GLuint mesh_data_buffer_object = 0;	// handle to uniform buffer for mesh data
+	GLuint scene_data_buffer_object = 0;
 
 	//GLint vs_world_matrix_handle = 0;
 	//GLint vs_view_matrix_handle = 0;
@@ -94,45 +115,45 @@ public:
 			projection_matrix);
 
 		{
-			//glGenVertexArrays(1, &vertex_array_object);
-			//glBindVertexArray(vertex_array_object);
-			//{
-			//	glGenBuffers(1, &vertex_buffer_object);
-			//	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
-			//	{
-			//		glBufferData(GL_ARRAY_BUFFER, sizeof(FSLogo_vertices), FSLogo_vertices, GL_STATIC_DRAW);
-			//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(OBJ_VERT), (void*)offsetof(OBJ_VERT, pos));
-			//		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(OBJ_VERT), (void*)offsetof(OBJ_VERT, uvw));
-			//		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(OBJ_VERT), (void*)offsetof(OBJ_VERT, nrm));
-			//		glEnableVertexAttribArray(0);
-			//		glEnableVertexAttribArray(1);
-			//		glEnableVertexAttribArray(2);
-			//	}
+			testLevel.LoadFromFile(nullptr);
 
-			//	glGenBuffers(1, &index_buffer_object);
-			//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object);
-			//	{
-			//		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(FSLogo_indices), FSLogo_indices, GL_STATIC_DRAW);
-			//	}
-			//}
-			//glBindVertexArray(0);
-			//glBindBuffer(GL_ARRAY_BUFFER, 0);
-			//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			int debug = 0;
+
+			for (int i = 0; i < testLevel.models.size(); i++)
+			{
+				Model& current = testLevel.models[i];
+				glGenVertexArrays(1, &current.vertex_array_object);
+				glBindVertexArray(current.vertex_array_object);
+				{
+					glGenBuffers(1, &current.vertex_buffer_object);
+					glBindBuffer(GL_ARRAY_BUFFER, current.vertex_buffer_object);
+					{
+						glBufferData(GL_ARRAY_BUFFER, sizeof(H2B::VERTEX) * current.info.vertexCount, current.info.vertices.data(), GL_STATIC_DRAW);
+						glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, pos));
+						glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, uvw));
+						glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, nrm));
+						glEnableVertexAttribArray(0);
+						glEnableVertexAttribArray(1);
+						glEnableVertexAttribArray(2);
+					}
+
+					glGenBuffers(1, &current.index_buffer_object);
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, current.index_buffer_object);
+					{
+						glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * current.info.indexCount, current.info.indices.data(), GL_STATIC_DRAW);
+					}
+				}
+				glBindVertexArray(0);
+				glBindBuffer(GL_ARRAY_BUFFER, 0);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			}
+
 		}
 
 		{
-			//scene_data.camera_pos = camera_matrix.row4;
-			//scene_data.view_matrix = view_matrix;
-			//scene_data.projection_matrix = projection_matrix;
-			//scene_data.ambient_light = ambient;
-			//scene_data.sun_direction = light_direction;
-			//scene_data.sun_color = light_color;
-
-			//for (size_t i = 0; i < FSLogo_materialcount; i++)
-			//{
-			//	mesh_data[i].world_matrix = GW::MATH::GIdentityMatrixF;
-			//	mesh_data[i].material = FSLogo_materials[i].attrib;
-			//}
+			scene_data.camera_pos = camera_matrix.row4;
+			scene_data.view_matrix = view_matrix;
+			scene_data.projection_matrix = projection_matrix;
 		}
 
 		{
@@ -175,24 +196,24 @@ public:
 			}
 			glUseProgram(shader_program);
 
-			//// Get handles to Vertex Shader uniforms (UBOs)
-			//glGenBuffers(1, &mesh_data_object);
-			//glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_object);
-			//{
-			//	mesh_data_index = glGetUniformBlockIndex(shader_program, "MESH_DATA");
-			//	glBufferData(GL_UNIFORM_BUFFER, sizeof(MESH_DATA), &mesh_data[0], GL_DYNAMIC_DRAW);
-			//	glBindBufferBase(GL_UNIFORM_BUFFER, mesh_data_index, mesh_data_object);
-			//}
-			//glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			// Get handles to Vertex Shader uniforms (UBOs)
+			glGenBuffers(1, &mesh_data_buffer_object);
+			glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
+			{
+				mesh_data_index = glGetUniformBlockIndex(shader_program, "MESH_DATA");
+				glBufferData(GL_UNIFORM_BUFFER, sizeof(MESH_DATA), nullptr, GL_DYNAMIC_DRAW);
+				glBindBufferBase(GL_UNIFORM_BUFFER, mesh_data_index, mesh_data_buffer_object);
+			}
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			//glGenBuffers(1, &scene_data_object);
-			//glBindBuffer(GL_UNIFORM_BUFFER, scene_data_object);
-			//{
-			//	scene_data_index = glGetUniformBlockIndex(shader_program, "SCENE_DATA");
-			//	glBufferData(GL_UNIFORM_BUFFER, sizeof(SCENE_DATA), &scene_data, GL_DYNAMIC_DRAW);
-			//	glBindBufferBase(GL_UNIFORM_BUFFER, scene_data_index, scene_data_object);
-			//}
-			//glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			glGenBuffers(1, &scene_data_buffer_object);
+			glBindBuffer(GL_UNIFORM_BUFFER, scene_data_buffer_object);
+			{
+				scene_data_index = glGetUniformBlockIndex(shader_program, "SCENE_DATA");
+				glBufferData(GL_UNIFORM_BUFFER, sizeof(SCENE_DATA), &scene_data, GL_DYNAMIC_DRAW);
+				glBindBufferBase(GL_UNIFORM_BUFFER, scene_data_index, scene_data_buffer_object);
+			}
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		}
 
 		glUseProgram(0);
@@ -201,19 +222,24 @@ public:
 	void Render()
 	{
 		// setup the pipeline
-		//glUseProgram(shader_program);
-		//glUniformBlockBinding(shader_program, mesh_data_index, 0);
-		//glUniformBlockBinding(shader_program, scene_data_index, 1);
+		glUseProgram(shader_program);
+		glUniformBlockBinding(shader_program, mesh_data_index, 0);
+		glUniformBlockBinding(shader_program, scene_data_index, 1);
 
-		//// now we can draw
-		//glBindVertexArray(vertex_array_object);
-		//for (size_t j = 0; j < FSLogo_meshcount; j++)
-		//{
-		//	glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_object);
-		//	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data[j]);
-		//	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		//	glDrawElements(GL_TRIANGLES, FSLogo_meshes[j].indexCount, GL_UNSIGNED_INT, (GLvoid*)(FSLogo_meshes[j].indexOffset * sizeof(GLuint)));
-		//}		
+		// now we can draw
+		for (size_t i = 0; i < testLevel.models.size(); i++)
+		{
+			const Model& current = testLevel.models[i];
+			glBindVertexArray(current.vertex_array_object);
+			for (size_t j = 0; j < current.info.meshCount; j++)
+			{
+				MESH_DATA mesh_data = { };
+				glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
+				glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data[j]);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+				glDrawElements(GL_TRIANGLES, current.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(current.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
+			}
+		}
 
 		glBindVertexArray(0);
 		glUseProgram(0);
@@ -222,9 +248,9 @@ public:
 	~Renderer()
 	{
 		// free resources
-		glDeleteVertexArrays(1, &vertex_array_object);
-		glDeleteBuffers(1, &vertex_buffer_object);
-		glDeleteBuffers(1, &index_buffer_object);
+		//glDeleteVertexArrays(1, &vertex_array_object);
+		//glDeleteBuffers(1, &vertex_buffer_object);
+		//glDeleteBuffers(1, &index_buffer_object);
 
 
 		glDeleteShader(vertex_shader);
