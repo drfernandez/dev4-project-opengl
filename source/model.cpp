@@ -42,6 +42,5 @@ Model& Model::operator=(const Model& copy)
 bool Model::LoadFromFile(const char* fileName)
 {
 	name.append(fileName);
-	info.Parse(fileName);
-	return true;
+	return info.Parse(fileName);
 }

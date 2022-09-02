@@ -62,6 +62,14 @@ class Renderer
 	GW::MATH::GMATRIXF camera_matrix;
 	GW::MATH::GMATRIXF projection_matrix;
 
+	GW::MATH::GMATRIXF right_handed =
+	{
+		-1.0f, 0.0f,  0.0f, 0.0f,
+		 0.0f, 1.0f,  0.0f, 0.0f,
+		 0.0f, 0.0f,  1.0f, 0.0f,
+		 0.0f, 0.0f,  0.0f, 1.0f
+	};
+
 
 	// timing variables
 	std::chrono::steady_clock::time_point last_update;
@@ -112,7 +120,26 @@ class Renderer
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
+	}
 
+	void DrawModel(const Model& m)
+	{
+		glBindVertexArray(m.vertex_array_object);
+		for (size_t j = 0; j < m.info.meshCount; j++)	// number of submeshes in current model
+		{
+			for (size_t k = 0; k < m.worldMatrix.size(); k++)	// number of instances of current model
+			{
+				MESH_DATA mesh_data =
+				{
+					(GW::MATH::GMATRIXF&)m.worldMatrix[k],
+					m.info.materials[j].attrib
+				};
+				glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
+				glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+				glDrawElements(GL_TRIANGLES, m.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(m.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
+			}
+		}
 	}
 
 public:
@@ -134,19 +161,19 @@ public:
 #endif
 
 		FLOAT aspect_ratio = 0.0f;
-		GW::MATH::GVECTORF eye = { 0.0f, 0.25f, -7.5f, 1.0f };
+		GW::MATH::GVECTORF eye = { 0.0f, 5.25f, -7.5f, 1.0f };
 		GW::MATH::GVECTORF at = { 0.0f, 0.0f, 0.0f, 1.0f };
 		GW::MATH::GVECTORF up = { 0.0f, 1.0f, 0.0f, 0.0f };
-		proxy.LookAtRHF(eye, at, up, view_matrix);
+		proxy.LookAtLHF(eye, at, up, view_matrix);
 		proxy.InverseF(view_matrix, camera_matrix);
 
 		ogl.GetAspectRatio(aspect_ratio);
-		proxy.ProjectionOpenGLRHF(G_DEGREE_TO_RADIAN_F(65.0f),
+		proxy.ProjectionOpenGLLHF(G_DEGREE_TO_RADIAN_F(65.0f),
 			aspect_ratio, 0.1f, 1000.0f,
 			projection_matrix);
 
 		{
-			bool success = testLevel.LoadFromFile("../levels/Modular Dungeon 3.txt");
+			bool success = testLevel.LoadFromFile("../levels/Testing.txt");
 			CreateLevelResources(testLevel);
 			int debug = 0;
 		}
@@ -235,23 +262,7 @@ public:
 		for (size_t i = 0; i < testLevel.models.size(); i++)	// number of models
 		{
 			const Model& current = testLevel.models[i];
-			glBindVertexArray(current.vertex_array_object);
-			for (size_t j = 0; j < current.info.meshCount; j++)	// number of submeshes in current model
-			{
-				for (size_t k = 0; k < current.worldMatrix.size(); k++)	// number of instances of current model
-				{
-					MESH_DATA mesh_data =
-					{
-						(GW::MATH::GMATRIXF&)current.worldMatrix[k],
-						current.info.materials[j].attrib
-					};
-					glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
-					glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data);
-					glBindBuffer(GL_UNIFORM_BUFFER, 0);
-					glDrawElements(GL_TRIANGLES, current.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(current.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
-
-				}
-			}
+			DrawModel(current);
 		}
 
 		glBindVertexArray(0);
@@ -284,7 +295,15 @@ public:
 		float delta_time = std::chrono::duration_cast<std::chrono::microseconds>(now - last_update).count() / 100000.0f;
 		last_update = now;
 
-		UpdateCamera(delta_time);
+		HRESULT hr = E_NOTIMPL;
+		GW::SYSTEM::UNIVERSAL_WINDOW_HANDLE wndHandle;
+		win.GetWindowHandle(wndHandle);
+		BOOL IsFocusWindow = GetFocus() == (HWND&)wndHandle;
+
+		if (IsFocusWindow)
+		{
+			UpdateCamera(delta_time);
+		}
 
 		scene_data.camera_pos = camera_matrix.row4;
 		scene_data.view_matrix = view_matrix;
@@ -340,21 +359,21 @@ public:
 		{
 			FLOAT total_x_change = kbmState[G_KEY_D] - kbmState[G_KEY_A] + controllerState[G_LX_AXIS];
 			FLOAT total_z_change = kbmState[G_KEY_W] - kbmState[G_KEY_S] + controllerState[G_LY_AXIS];
-			GW::MATH::GVECTORF translation = { total_x_change * per_frame_speed, 0.0f, -total_z_change * per_frame_speed, 1.0f };
+			GW::MATH::GVECTORF translation = { total_x_change * per_frame_speed, 0.0f, total_z_change * per_frame_speed, 1.0f };
 			proxy.TranslateLocalF(camera_matrix, translation, camera_matrix);
 		}
 		if (mouse_moved || aim_up_down_changed)
 		{
 			FLOAT total_pitch = G_DEGREE_TO_RADIAN_F(65.0f) * (mouse_y_delta / static_cast<FLOAT>(screen_height)) + (controllerState[G_RY_AXIS] * thumb_speed);
 			GW::MATH::GMATRIXF x_rotation = GW::MATH::GIdentityMatrixF;
-			proxy.RotateXLocalF(x_rotation, -total_pitch, x_rotation);
+			proxy.RotateXLocalF(x_rotation, total_pitch, x_rotation);
 			proxy.MultiplyMatrixF(x_rotation, camera_matrix, camera_matrix);
 		}
 		if (mouse_moved || aim_left_right_changed)
 		{
 			FLOAT total_yaw = G_DEGREE_TO_RADIAN_F(65.0f) * aspect_ratio * (mouse_x_delta / static_cast<FLOAT>(screen_width)) + (controllerState[G_RX_AXIS] * thumb_speed);
 			GW::MATH::GMATRIXF y_rotation = GW::MATH::GIdentityMatrixF;
-			proxy.RotateYLocalF(y_rotation, -total_yaw, y_rotation);
+			proxy.RotateYLocalF(y_rotation, total_yaw, y_rotation);
 			GW::MATH::GVECTORF position = camera_matrix.row4;
 			camera_matrix.row4 = { 0.0f, 0.0f, 0.0f, 1.0f };
 			proxy.MultiplyMatrixF(camera_matrix, y_rotation, camera_matrix);
@@ -363,7 +382,7 @@ public:
 
 		// end of camera update
 		proxy.InverseF(camera_matrix, view_matrix);
-		proxy.ProjectionOpenGLRHF(G_DEGREE_TO_RADIAN_F(65.0f),
+		proxy.ProjectionOpenGLLHF(G_DEGREE_TO_RADIAN_F(65.0f),
 			aspect_ratio, 0.1f, 1000.0f,
 			projection_matrix);
 	}

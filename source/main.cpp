@@ -25,7 +25,7 @@ int main()
 	GWindow win;
 	GEventResponder msgs;
 	GOpenGLSurface ogl;
-	if (+win.Create(0, 0, 800, 600, GWindowStyle::WINDOWEDBORDERED))
+	if (+win.Create(0, 0, 1024, 768, GWindowStyle::WINDOWEDBORDERED))
 	{
 		float clr[] = { 48 / 255.0f, 90 / 255.0f, 150 / 255.0f, 1 }; 
 		msgs.Create([&](const GW::GEvent& e) {

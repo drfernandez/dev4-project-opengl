@@ -35,13 +35,14 @@ void main()
 {	
 	OBJ_ATTRIBUTES m = material;
 
+	float lightPower = 3.0f;
 	vec3 normal = normalize(fs_nrm);
-	vec3 lightAmbient = vec3(0.2f, 0.2f, 0.3f);
+	vec3 lightAmbient = vec3(0.25f, 0.25f, 0.35f);
 	vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
-	vec3 lightDirection = normalize(vec3(-1.0f, -1.0f, 1.0f));
-	float lightRatio = clamp(dot(-lightDirection, normal), 0, 1);
-	vec3 lightResult = lightRatio * lightColor;
-	gl_FragColor = clamp(vec4(m.Kd * (lightResult + lightAmbient), m.d), 0, 1);
+	vec3 lightDirection = normalize(vec3(-3.0f, -2.0f, 1.0f));
+	float lightRatio = clamp(dot(-lightDirection, normal), 0.0f, 1.0f);
+	vec3 lightResult = clamp(lightRatio * lightColor, 0.0f, 1.0f) * lightPower;
+	gl_FragColor = vec4(m.Kd * (lightResult + lightAmbient), m.d);
 
 	//vec3 directLight = dot(-normalize(sun_direction.xyz), normalize(fs_nrm)) * sun_color.xyz;
 	//vec3 ambientLight = m.Kd * ambient_light.xyz;
