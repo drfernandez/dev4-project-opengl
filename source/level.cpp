@@ -124,7 +124,5 @@ bool Level::LoadFromFile(const char* fileName)
 			}
 		}
 	}
-
-
 	return true;
 }
