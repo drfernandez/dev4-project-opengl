@@ -34,7 +34,7 @@ int main()
 				clr[2] += 0.01f; // shift color as they resize
 		});
 		win.Register(msgs);
-		win.SetWindowName("Dan Fernandez - Lab 2 - OpenGL");
+		win.SetWindowName("Dan Fernandez - Project - OpenGL");
 		if (+ogl.Create(win, GW::GRAPHICS::DEPTH_BUFFER_SUPPORT))
 		{
 			Renderer renderer(win, ogl);

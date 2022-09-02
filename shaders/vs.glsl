@@ -24,9 +24,6 @@ layout (std140, row_major) uniform SCENE_DATA
 {
 	mat4 view_matrix;
 	mat4 projection_matrix;
-	vec4 sun_direction;
-	vec4 sun_color;
-	vec4 ambient_light;
 	vec4 camera_pos;
 };
 

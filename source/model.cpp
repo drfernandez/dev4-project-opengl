@@ -4,6 +4,7 @@ Model::Model()
 {
 	name = "";
 	info.Clear();
+	worldMatrix.clear();
 	vertex_array_object = 0;
 	vertex_buffer_object = 0;
 	index_buffer_object = 0;
@@ -13,6 +14,7 @@ Model::~Model()
 {
 	name = "";
 	info.Clear();
+	worldMatrix.clear();
 	vertex_array_object = 0;
 	vertex_buffer_object = 0;
 	index_buffer_object = 0;
@@ -29,6 +31,7 @@ Model& Model::operator=(const Model& copy)
 	{
 		name = copy.name;
 		info = copy.info;	// deep copy texture names from material??
+		worldMatrix = copy.worldMatrix;
 		vertex_array_object = copy.vertex_array_object;
 		vertex_buffer_object = copy.vertex_buffer_object;
 		index_buffer_object = copy.index_buffer_object;
@@ -36,8 +39,9 @@ Model& Model::operator=(const Model& copy)
 	return *this;
 }
 
-bool Model::LoadFromFile(const char* szFileName)
+bool Model::LoadFromFile(const char* fileName)
 {
-	info.Parse(szFileName);
+	name.append(fileName);
+	info.Parse(fileName);
 	return true;
 }

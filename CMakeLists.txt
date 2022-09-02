@@ -32,6 +32,9 @@ if(WIN32)
 		source/renderer.h
 		source/gateware.h
 		source/model.h
+		source/model.cpp
+		source/level.h
+		source/level.cpp
 		source/h2bparser.h
 		${VERTEX_SHADERS}
 		${FRAGMENT_SHADERS}

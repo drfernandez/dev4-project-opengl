@@ -6,6 +6,7 @@
 void MessageCallback(GLenum source, GLenum type, GLuint id,
 	GLenum severity, GLsizei length,
 	const GLchar* message, const void* userParam) {
+	if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) return;
 	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
@@ -45,13 +46,13 @@ class Renderer
 	GLuint fragment_shader = 0;
 	GLuint shader_program = 0;
 	GLuint mesh_data_buffer_object = 0;	// handle to uniform buffer for mesh data
-	GLuint scene_data_buffer_object = 0;
+	GLuint scene_data_buffer_object = 0; // handle to uniform buffer for scene data
+	GLint mesh_data_index = 0;	// shader register index to the uniform buffer for mesh data
+	GLint scene_data_index = 0; // shader register index to the uniform buffer for scene data
 
 	//GLint vs_world_matrix_handle = 0;
 	//GLint vs_view_matrix_handle = 0;
 	//GLint vs_projection_matrix_handle = 0;
-	GLint mesh_data_index = 0;
-	GLint scene_data_index = 0;
 
 	GW::MATH::GMatrix proxy;
 	GW::INPUT::GInput kbm_proxy;
@@ -81,6 +82,39 @@ class Renderer
 		return output;
 	}
 
+	void CreateLevelResources(Level& level)
+	{
+		for (int i = 0; i < level.models.size(); i++)
+		{
+			Model& current = level.models[i];
+			glGenVertexArrays(1, &current.vertex_array_object);
+			glBindVertexArray(current.vertex_array_object);
+			{
+				glGenBuffers(1, &current.vertex_buffer_object);
+				glBindBuffer(GL_ARRAY_BUFFER, current.vertex_buffer_object);
+				{
+					glBufferData(GL_ARRAY_BUFFER, sizeof(H2B::VERTEX) * current.info.vertexCount, current.info.vertices.data(), GL_STATIC_DRAW);
+					glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, pos));
+					glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, uvw));
+					glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, nrm));
+					glEnableVertexAttribArray(0);
+					glEnableVertexAttribArray(1);
+					glEnableVertexAttribArray(2);
+				}
+
+				glGenBuffers(1, &current.index_buffer_object);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, current.index_buffer_object);
+				{
+					glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * current.info.indexCount, current.info.indices.data(), GL_STATIC_DRAW);
+				}
+			}
+			glBindVertexArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		}
+
+	}
+
 public:
 	Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface _ogl)
 	{
@@ -100,54 +134,21 @@ public:
 #endif
 
 		FLOAT aspect_ratio = 0.0f;
-		GW::MATH::GVECTORF eye = { 0.75f, 0.25f, 1.5f, 1.0f };
-		GW::MATH::GVECTORF at = { 0.15f, 0.75f, 0.0f, 1.0f };
+		GW::MATH::GVECTORF eye = { 0.0f, 0.25f, -7.5f, 1.0f };
+		GW::MATH::GVECTORF at = { 0.0f, 0.0f, 0.0f, 1.0f };
 		GW::MATH::GVECTORF up = { 0.0f, 1.0f, 0.0f, 0.0f };
-		GW::MATH::GVECTORF ambient = { 0.25f, 0.25f, 0.35f, 0.0f };
-		GW::MATH::GVECTORF light_direction = { -1.0f, -1.0f, -2.0f, 1.0f };
-		GW::MATH::GVECTORF light_color = { 0.9f, 0.9f, 1.0f, 1.0f };
 		proxy.LookAtRHF(eye, at, up, view_matrix);
 		proxy.InverseF(view_matrix, camera_matrix);
 
 		ogl.GetAspectRatio(aspect_ratio);
-		proxy.ProjectionOpenGLRHF(G2D_DEGREE_TO_RADIAN(65.0f),
+		proxy.ProjectionOpenGLRHF(G_DEGREE_TO_RADIAN_F(65.0f),
 			aspect_ratio, 0.1f, 1000.0f,
 			projection_matrix);
 
 		{
-			testLevel.LoadFromFile(nullptr);
-
+			bool success = testLevel.LoadFromFile("../levels/Modular Dungeon 3.txt");
+			CreateLevelResources(testLevel);
 			int debug = 0;
-
-			for (int i = 0; i < testLevel.models.size(); i++)
-			{
-				Model& current = testLevel.models[i];
-				glGenVertexArrays(1, &current.vertex_array_object);
-				glBindVertexArray(current.vertex_array_object);
-				{
-					glGenBuffers(1, &current.vertex_buffer_object);
-					glBindBuffer(GL_ARRAY_BUFFER, current.vertex_buffer_object);
-					{
-						glBufferData(GL_ARRAY_BUFFER, sizeof(H2B::VERTEX) * current.info.vertexCount, current.info.vertices.data(), GL_STATIC_DRAW);
-						glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, pos));
-						glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, uvw));
-						glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(H2B::VERTEX), (void*)offsetof(H2B::VERTEX, nrm));
-						glEnableVertexAttribArray(0);
-						glEnableVertexAttribArray(1);
-						glEnableVertexAttribArray(2);
-					}
-
-					glGenBuffers(1, &current.index_buffer_object);
-					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, current.index_buffer_object);
-					{
-						glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * current.info.indexCount, current.info.indices.data(), GL_STATIC_DRAW);
-					}
-				}
-				glBindVertexArray(0);
-				glBindBuffer(GL_ARRAY_BUFFER, 0);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-			}
-
 		}
 
 		{
@@ -226,18 +227,30 @@ public:
 		glUniformBlockBinding(shader_program, mesh_data_index, 0);
 		glUniformBlockBinding(shader_program, scene_data_index, 1);
 
+		glBindBuffer(GL_UNIFORM_BUFFER, scene_data_buffer_object);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SCENE_DATA), &scene_data);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 		// now we can draw
-		for (size_t i = 0; i < testLevel.models.size(); i++)
+		for (size_t i = 0; i < testLevel.models.size(); i++)	// number of models
 		{
 			const Model& current = testLevel.models[i];
 			glBindVertexArray(current.vertex_array_object);
-			for (size_t j = 0; j < current.info.meshCount; j++)
+			for (size_t j = 0; j < current.info.meshCount; j++)	// number of submeshes in current model
 			{
-				MESH_DATA mesh_data = { };
-				glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
-				glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data[j]);
-				glBindBuffer(GL_UNIFORM_BUFFER, 0);
-				glDrawElements(GL_TRIANGLES, current.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(current.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
+				for (size_t k = 0; k < current.worldMatrix.size(); k++)	// number of instances of current model
+				{
+					MESH_DATA mesh_data =
+					{
+						(GW::MATH::GMATRIXF&)current.worldMatrix[k],
+						current.info.materials[j].attrib
+					};
+					glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
+					glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data);
+					glBindBuffer(GL_UNIFORM_BUFFER, 0);
+					glDrawElements(GL_TRIANGLES, current.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(current.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
+
+				}
 			}
 		}
 
@@ -248,10 +261,17 @@ public:
 	~Renderer()
 	{
 		// free resources
-		//glDeleteVertexArrays(1, &vertex_array_object);
-		//glDeleteBuffers(1, &vertex_buffer_object);
-		//glDeleteBuffers(1, &index_buffer_object);
+		for (size_t i = 0; i < testLevel.models.size(); i++)
+		{
+			Model& current = testLevel.models[i];
+			glDeleteVertexArrays(1, &current.vertex_array_object);
+			glDeleteBuffers(1, &current.vertex_buffer_object);
+			glDeleteBuffers(1, &current.index_buffer_object);
+		}
 
+		// TODO: free resources (ubos, etc..)
+		glDeleteBuffers(1, &mesh_data_buffer_object);
+		glDeleteBuffers(1, &scene_data_buffer_object);
 
 		glDeleteShader(vertex_shader);
 		glDeleteShader(fragment_shader);
@@ -265,6 +285,10 @@ public:
 		last_update = now;
 
 		UpdateCamera(delta_time);
+
+		scene_data.camera_pos = camera_matrix.row4;
+		scene_data.view_matrix = view_matrix;
+		scene_data.projection_matrix = projection_matrix;
 
 	}
 
@@ -285,7 +309,7 @@ public:
 		win.GetHeight(screen_height);
 		ogl.GetAspectRatio(aspect_ratio);
 
-		for (UINT i = 0; i < 256U; i++)
+		for (UINT i = 0; i < 256; i++)
 		{
 			kbm_proxy.GetState(i, kbmState[i]);
 			controller_proxy.GetState(0, i, controllerState[i]);
@@ -339,7 +363,7 @@ public:
 
 		// end of camera update
 		proxy.InverseF(camera_matrix, view_matrix);
-		proxy.ProjectionOpenGLRHF(G2D_DEGREE_TO_RADIAN(65.0f),
+		proxy.ProjectionOpenGLRHF(G_DEGREE_TO_RADIAN_F(65.0f),
 			aspect_ratio, 0.1f, 1000.0f,
 			projection_matrix);
 	}
