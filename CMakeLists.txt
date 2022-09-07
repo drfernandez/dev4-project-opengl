@@ -27,6 +27,20 @@ if(WIN32)
 	set(FRAGMENT_SHADERS
 		shaders/fs.glsl
 	)
+	set(IMGUI
+		imgui/imconfig.h
+		imgui/imgui_demo.cpp
+		imgui/imgui_draw.cpp
+		imgui/imgui_internal.h
+		imgui/imgui_tables.cpp
+		imgui/imgui_widgets.cpp
+		imgui/imgui.h
+		imgui/imgui.cpp
+		imgui/imgui_impl_opengl3.h
+		imgui/imgui_impl_opengl3.cpp
+		imgui/imgui_impl_win32.h
+		imgui/imgui_impl_win32.cpp
+	)
 	add_executable (Project_OpenGL 
 		source/main.cpp 
 		source/renderer.h
@@ -38,6 +52,11 @@ if(WIN32)
 		source/h2bparser.h
 		${VERTEX_SHADERS}
 		${FRAGMENT_SHADERS}
+		${IMGUI}
 	)
+	#set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${VERTEX_SHADERS})
+	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${FRAGMENT_SHADERS})
+	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${IMGUI})
 endif(WIN32)
 
