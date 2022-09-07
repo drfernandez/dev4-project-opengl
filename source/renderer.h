@@ -33,6 +33,14 @@ struct MESH_DATA
 	H2B::ATTRIBUTES material;
 };
 
+struct LIGHT
+{
+	GW::MATH::GVECTORF position;
+	GW::MATH::GVECTORF color;
+	GW::MATH::GVECTORF direction;
+	GW::MATH::GVECTORF attribs;
+};
+
 
 // Creation, Rendering & Cleanup
 class Renderer
@@ -56,8 +64,10 @@ class Renderer
 	GLuint shader_program = 0;
 	GLuint mesh_data_buffer_object = 0;	// handle to uniform buffer for mesh data
 	GLuint scene_data_buffer_object = 0; // handle to uniform buffer for scene data
+	GLuint light_data_buffer_object = 0; // handle to uniform buffer for light data
 	GLint mesh_data_index = 0;	// shader register index to the uniform buffer for mesh data
 	GLint scene_data_index = 0; // shader register index to the uniform buffer for scene data
+	GLint light_data_index = 0; // shader register index to the uniform buffer for light data
 
 	//GLint vs_world_matrix_handle = 0;
 	//GLint vs_view_matrix_handle = 0;
@@ -70,6 +80,8 @@ class Renderer
 	GW::MATH::GMATRIXF view_matrix;
 	GW::MATH::GMATRIXF camera_matrix;
 	GW::MATH::GMATRIXF projection_matrix;
+
+	LIGHT light_list[100];
 
 
 	// timing variables
@@ -269,6 +281,15 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 			glBindBufferBase(GL_UNIFORM_BUFFER, scene_data_index, scene_data_buffer_object);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glGenBuffers(1, &light_data_buffer_object);
+		glBindBuffer(GL_UNIFORM_BUFFER, light_data_buffer_object);
+		{
+			light_data_index = glGetUniformBlockIndex(shader_program, "LIGHT_DATA");
+			glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHT) * ARRAYSIZE(light_list), light_list, GL_DYNAMIC_DRAW);
+			glBindBufferBase(GL_UNIFORM_BUFFER, light_data_index, light_data_buffer_object);
+		}
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
 	glUseProgram(0);
@@ -303,6 +324,7 @@ inline Renderer::~Renderer()
 
 	glDeleteBuffers(1, &mesh_data_buffer_object);
 	glDeleteBuffers(1, &scene_data_buffer_object);
+	glDeleteBuffers(1, &light_data_buffer_object);
 
 	glDeleteShader(vertex_shader);
 	glDeleteShader(fragment_shader);
@@ -367,6 +389,8 @@ inline void Renderer::Update()
 	scene_data.camera_pos = camera_matrix.row4;
 	scene_data.view_matrix = view_matrix;
 	scene_data.projection_matrix = projection_matrix;
+
+	light_list[0] = { {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {-3.0f, -2.0f, 1.0f, 1.0f}, {5.0f, 0.0f, 0.0f, 0.0f} };
 
 }
 
@@ -452,9 +476,14 @@ inline void Renderer::Render()
 	glUseProgram(shader_program);
 	glUniformBlockBinding(shader_program, mesh_data_index, 0);
 	glUniformBlockBinding(shader_program, scene_data_index, 1);
+	glUniformBlockBinding(shader_program, light_data_index, 2);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, scene_data_buffer_object);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SCENE_DATA), &scene_data);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	glBindBuffer(GL_UNIFORM_BUFFER, light_data_buffer_object);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHT) * ARRAYSIZE(light_list), light_list);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	// now we can draw

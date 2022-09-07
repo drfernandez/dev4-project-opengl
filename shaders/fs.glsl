@@ -14,6 +14,14 @@ struct OBJ_ATTRIBUTES
 	uint		illum; // illumination model
 };
 
+struct LIGHT
+{
+	vec4 position;
+	vec4 color;
+	vec4 direction;
+	vec4 attribs;
+};
+
 layout (std140, row_major) uniform MESH_DATA
 {
 	mat4 world_matrix;
@@ -27,6 +35,11 @@ layout (std140, row_major) uniform SCENE_DATA
 	vec4 camera_pos;
 };
 
+layout (std140, row_major) uniform LIGHT_DATA
+{
+	LIGHT light_list[100];
+};
+
 in vec3 fs_pos;
 in vec2 fs_uv;
 in vec3 fs_nrm;
@@ -35,11 +48,11 @@ void main()
 {	
 	OBJ_ATTRIBUTES m = material;
 
-	float lightPower = 3.0f;
+	float lightPower = light_list[0].attribs.x;
 	vec3 normal = normalize(fs_nrm);
 	vec3 lightAmbient = vec3(0.25f, 0.25f, 0.35f);
-	vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
-	vec3 lightDirection = normalize(vec3(-3.0f, -2.0f, 1.0f));
+	vec3 lightColor = light_list[0].color.xyz;
+	vec3 lightDirection = normalize(light_list[0].direction.xyz);
 	float lightRatio = clamp(dot(-lightDirection, normal), 0.0f, 1.0f);
 	vec3 lightResult = clamp(lightRatio * lightColor, 0.0f, 1.0f) * lightPower;
 	gl_FragColor = vec4(m.Kd * (lightResult + lightAmbient), m.d);
