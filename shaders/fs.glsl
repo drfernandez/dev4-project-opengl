@@ -14,13 +14,6 @@ struct OBJ_ATTRIBUTES
 	uint		illum; // illumination model
 };
 
-struct LIGHT
-{
-	vec4 position;
-	vec4 color;
-	vec4 direction;
-	vec4 attribs;
-};
 
 layout (std140, row_major) uniform MESH_DATA
 {
@@ -35,6 +28,13 @@ layout (std140, row_major) uniform SCENE_DATA
 	vec4 camera_pos;
 };
 
+struct LIGHT
+{
+	vec4 position;
+	vec4 color;
+	vec4 direction;
+	vec4 attribs;
+};
 layout (std140, row_major) uniform LIGHT_DATA
 {
 	LIGHT light_list[100];

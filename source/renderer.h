@@ -57,6 +57,7 @@ class Renderer
 
 	MESH_DATA mesh_data;
 	SCENE_DATA scene_data;
+	LIGHT light_list[100];
 
 	GLuint vertex_shader = 0;
 	GLuint fragment_shader = 0;
@@ -82,7 +83,6 @@ class Renderer
 	GW::MATH::GMATRIXF camera_matrix;
 	GW::MATH::GMATRIXF projection_matrix;
 
-	LIGHT light_list[100];
 
 
 	// timing variables
@@ -306,7 +306,7 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 		glBindBuffer(GL_UNIFORM_BUFFER, light_data_buffer_object);
 		{
 			light_data_index = glGetUniformBlockIndex(shader_program, "LIGHT_DATA");
-			glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHT) * ARRAYSIZE(light_list), light_list, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHT) * ARRAYSIZE(light_list), (void*)light_list, GL_DYNAMIC_DRAW);
 			glBindBufferBase(GL_UNIFORM_BUFFER, light_data_index, light_data_buffer_object);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -493,16 +493,16 @@ inline void Renderer::Render()
 {
 	// setup the pipeline
 	glUseProgram(shader_program);
-	glUniformBlockBinding(shader_program, mesh_data_index, 0);
-	glUniformBlockBinding(shader_program, scene_data_index, 1);
-	glUniformBlockBinding(shader_program, light_data_index, 2);
+	glUniformBlockBinding(shader_program, mesh_data_index, 1);	// why can i not set the correct binding location ??
+	glUniformBlockBinding(shader_program, scene_data_index, 2);
+	glUniformBlockBinding(shader_program, light_data_index, 0);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, scene_data_buffer_object);
-	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SCENE_DATA), &scene_data);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SCENE_DATA), (void*)&scene_data);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, light_data_buffer_object);
-	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHT) * ARRAYSIZE(light_list), light_list);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHT) * ARRAYSIZE(light_list), (void*)&light_list[0]);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	// now we can draw
@@ -536,6 +536,7 @@ inline void Renderer::DrawModel(const Model& model)
 			glDrawElements(GL_TRIANGLES, model.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(model.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
 		}
 	}
+	glBindVertexArray(0);
 }
 
 inline std::string Renderer::ShaderAsString(const char* shaderFilePath)

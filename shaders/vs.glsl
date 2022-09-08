@@ -27,6 +27,19 @@ layout (std140, row_major) uniform SCENE_DATA
 	vec4 camera_pos;
 };
 
+struct LIGHT
+{
+	vec4 position;
+	vec4 color;
+	vec4 direction;
+	vec4 attribs;
+};
+
+layout (std140, row_major) uniform LIGHT_DATA
+{
+	LIGHT light_list[100];
+};
+
 //uniform mat4 world_matrix; // 16 32-bit values
 //uniform mat4 view_matrix;
 //uniform mat4 projection_matrix;
