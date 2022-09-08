@@ -493,9 +493,9 @@ inline void Renderer::Render()
 {
 	// setup the pipeline
 	glUseProgram(shader_program);
+	glUniformBlockBinding(shader_program, light_data_index, 0);
 	glUniformBlockBinding(shader_program, mesh_data_index, 1);	// why can i not set the correct binding location ??
 	glUniformBlockBinding(shader_program, scene_data_index, 2);
-	glUniformBlockBinding(shader_program, light_data_index, 0);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, scene_data_buffer_object);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SCENE_DATA), (void*)&scene_data);
