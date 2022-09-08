@@ -1,4 +1,4 @@
-#version 330 // GLSL 3.30
+#version 420 // GLSL 4.20
 
 struct OBJ_ATTRIBUTES
 {
@@ -14,14 +14,13 @@ struct OBJ_ATTRIBUTES
 	uint		illum; // illumination model
 };
 
-
-layout (std140, row_major) uniform MESH_DATA
+layout (std140, row_major, binding = 0) uniform MESH_DATA
 {
 	mat4 world_matrix;
 	OBJ_ATTRIBUTES material;
 };
 
-layout (std140, row_major) uniform SCENE_DATA
+layout (std140, row_major, binding = 1) uniform SCENE_DATA
 {
 	mat4 view_matrix;
 	mat4 projection_matrix;
@@ -35,7 +34,8 @@ struct LIGHT
 	vec4 direction;
 	vec4 attribs;
 };
-layout (std140, row_major) uniform LIGHT_DATA
+
+layout (std140, row_major, binding = 2) uniform LIGHT_DATA
 {
 	LIGHT light_list[100];
 };

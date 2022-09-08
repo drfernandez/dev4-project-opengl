@@ -55,9 +55,9 @@ class Renderer
 
 	Level current_level;
 
+	LIGHT light_list[100];
 	MESH_DATA mesh_data;
 	SCENE_DATA scene_data;
-	LIGHT light_list[100];
 
 	GLuint vertex_shader = 0;
 	GLuint fragment_shader = 0;
@@ -289,7 +289,7 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 		{
 			mesh_data_index = glGetUniformBlockIndex(shader_program, "MESH_DATA");
 			glBufferData(GL_UNIFORM_BUFFER, sizeof(MESH_DATA), nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferBase(GL_UNIFORM_BUFFER, mesh_data_index, mesh_data_buffer_object);
+			glBindBufferBase(GL_UNIFORM_BUFFER, 0, mesh_data_buffer_object);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -298,7 +298,7 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 		{
 			scene_data_index = glGetUniformBlockIndex(shader_program, "SCENE_DATA");
 			glBufferData(GL_UNIFORM_BUFFER, sizeof(SCENE_DATA), &scene_data, GL_DYNAMIC_DRAW);
-			glBindBufferBase(GL_UNIFORM_BUFFER, scene_data_index, scene_data_buffer_object);
+			glBindBufferBase(GL_UNIFORM_BUFFER, 1, scene_data_buffer_object);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -307,7 +307,7 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 		{
 			light_data_index = glGetUniformBlockIndex(shader_program, "LIGHT_DATA");
 			glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHT) * ARRAYSIZE(light_list), (void*)light_list, GL_DYNAMIC_DRAW);
-			glBindBufferBase(GL_UNIFORM_BUFFER, light_data_index, light_data_buffer_object);
+			glBindBufferBase(GL_UNIFORM_BUFFER, 2, light_data_buffer_object);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
@@ -493,9 +493,9 @@ inline void Renderer::Render()
 {
 	// setup the pipeline
 	glUseProgram(shader_program);
-	glUniformBlockBinding(shader_program, light_data_index, 0);
-	glUniformBlockBinding(shader_program, mesh_data_index, 1);	// why can i not set the correct binding location ??
-	glUniformBlockBinding(shader_program, scene_data_index, 2);
+	glUniformBlockBinding(shader_program, mesh_data_index, 0);	
+	glUniformBlockBinding(shader_program, scene_data_index, 1);
+	glUniformBlockBinding(shader_program, light_data_index, 2);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, scene_data_buffer_object);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SCENE_DATA), (void*)&scene_data);
