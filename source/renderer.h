@@ -41,7 +41,6 @@ struct LIGHT
 	GW::MATH::GVECTORF attribs;
 };
 
-
 // Creation, Rendering & Cleanup
 class Renderer
 {
@@ -62,9 +61,11 @@ class Renderer
 	GLuint vertex_shader = 0;
 	GLuint fragment_shader = 0;
 	GLuint shader_program = 0;
+
 	GLuint mesh_data_buffer_object = 0;	// handle to uniform buffer for mesh data
 	GLuint scene_data_buffer_object = 0; // handle to uniform buffer for scene data
 	GLuint light_data_buffer_object = 0; // handle to uniform buffer for light data
+
 	GLint mesh_data_index = 0;	// shader register index to the uniform buffer for mesh data
 	GLint scene_data_index = 0; // shader register index to the uniform buffer for scene data
 	GLint light_data_index = 0; // shader register index to the uniform buffer for light data
@@ -165,10 +166,27 @@ inline void Renderer::DisplayImguiMenu()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-
-	bool show_demo_window = true;
+	bool show_demo_window = false;
 	if (show_demo_window)
 		ImGui::ShowDemoWindow(&show_demo_window);
+
+	const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(550, 450), ImGuiCond_FirstUseEver);
+
+	ImGui::Begin("Scene");
+	//ImGui::Spacing();
+	//ImGui::Text("View / Projection Settings");
+	ImGui::Spacing();
+	ImGui::Text("Directional Light");
+	ImGui::InputFloat3("Light Position", (float*)&light_list[0].position);
+	ImGui::ColorEdit3("Light Color", (float*)&light_list[0].color);
+	//ImGui::SliderFloat3("Light Direction", (float*)&light_list[0].direction, -100.0f, 100.0f);
+	ImGui::InputFloat3("Light Direction", (float*)&light_list[0].direction);
+	//ImGui::SliderFloat3("Light Attributes", (float*)&light_list[0].attribs, 0.0f, 100.0f);
+	ImGui::InputFloat3("Light Attributes", (float*)&light_list[0].attribs);
+	ImGui::Spacing();
+	ImGui::End();
 
 	// rendering
 	ImGui::Render();
@@ -221,6 +239,8 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 		scene_data.camera_pos = camera_matrix.row4;
 		scene_data.view_matrix = view_matrix;
 		scene_data.projection_matrix = projection_matrix;
+
+		light_list[0] = { {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {-3.0f, -2.0f, 1.0f, 1.0f}, {5.0f, 0.0f, 0.0f, 0.0f} };
 	}
 	// creating the shaders
 	{
@@ -390,7 +410,6 @@ inline void Renderer::Update()
 	scene_data.view_matrix = view_matrix;
 	scene_data.projection_matrix = projection_matrix;
 
-	light_list[0] = { {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {-3.0f, -2.0f, 1.0f, 1.0f}, {5.0f, 0.0f, 0.0f, 0.0f} };
 
 }
 
