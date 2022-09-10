@@ -155,7 +155,7 @@ LONG_PTR Renderer::gatewareWndProc = 0;
 
 LRESULT CALLBACK Renderer::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+	LRESULT lr = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 
 	return CallWindowProcW((WNDPROC)gatewareWndProc, hWnd, msg, wParam, lParam);
 }
@@ -212,10 +212,11 @@ inline Renderer::Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GOpenGLSurface
 #endif
 
 	GW::SYSTEM::UNIVERSAL_WINDOW_HANDLE uwh;
-	+win.GetWindowHandle(uwh);
-	//internal_gw::GInputGlobal()._userWinProc = SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)GWinProc);
-	gatewareWndProc = SetWindowLongPtr((HWND)uwh.window, GWLP_WNDPROC, (LONG_PTR)WndProc);
-
+	if (+win.GetWindowHandle(uwh))
+	{
+		//internal_gw::GInputGlobal()._userWinProc = SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)GWinProc);
+		gatewareWndProc = SetWindowLongPtr((HWND)uwh.window, GWLP_WNDPROC, (LONG_PTR)WndProc);
+	}
 
 	FLOAT aspect_ratio = 0.0f;
 	GW::MATH::GVECTORF eye = { 0.0f, 5.25f, -7.5f, 1.0f };
@@ -533,7 +534,8 @@ inline void Renderer::DrawModel(const Model& model)
 			glBindBuffer(GL_UNIFORM_BUFFER, mesh_data_buffer_object);
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MESH_DATA), &mesh_data);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			glDrawElements(GL_TRIANGLES, model.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, (GLvoid*)(model.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint)));
+			GLuint index_offset = model.info.meshes[j].drawInfo.indexOffset * sizeof(GLuint);
+			glDrawElements(GL_TRIANGLES, model.info.meshes[j].drawInfo.indexCount, GL_UNSIGNED_INT, reinterpret_cast<GLvoid*>(index_offset));
 		}
 	}
 	glBindVertexArray(0);

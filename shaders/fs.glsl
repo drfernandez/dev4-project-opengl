@@ -14,19 +14,6 @@ struct OBJ_ATTRIBUTES
 	uint		illum; // illumination model
 };
 
-layout (std140, row_major, binding = 0) uniform MESH_DATA
-{
-	mat4 world_matrix;
-	OBJ_ATTRIBUTES material;
-};
-
-layout (std140, row_major, binding = 1) uniform SCENE_DATA
-{
-	mat4 view_matrix;
-	mat4 projection_matrix;
-	vec4 camera_pos;
-};
-
 struct LIGHT
 {
 	vec4 position;
@@ -35,7 +22,22 @@ struct LIGHT
 	vec4 attribs;
 };
 
-layout (std140, row_major, binding = 2) uniform LIGHT_DATA
+layout (std140, row_major) uniform;
+
+layout (binding = 0) uniform MESH_DATA
+{
+	mat4 world_matrix;
+	OBJ_ATTRIBUTES material;
+};
+
+layout (binding = 1) uniform SCENE_DATA
+{
+	mat4 view_matrix;
+	mat4 projection_matrix;
+	vec4 camera_pos;
+};
+
+layout (binding = 2) uniform LIGHT_DATA
 {
 	LIGHT light_list[100];
 };
@@ -43,6 +45,8 @@ layout (std140, row_major, binding = 2) uniform LIGHT_DATA
 in vec3 fs_pos;
 in vec2 fs_uv;
 in vec3 fs_nrm;
+
+out vec4 out_color;
 
 void main() 
 {	
@@ -55,7 +59,7 @@ void main()
 	vec3 lightDirection = normalize(light_list[0].direction.xyz);
 	float lightRatio = clamp(dot(-lightDirection, normal), 0.0f, 1.0f);
 	vec3 lightResult = clamp(lightRatio * lightColor, 0.0f, 1.0f) * lightPower;
-	gl_FragColor = vec4(m.Kd * (lightResult + lightAmbient), m.d);
+	out_color = vec4(m.Kd * (lightResult + lightAmbient), m.d);
 
 	//vec3 directLight = dot(-normalize(sun_direction.xyz), normalize(fs_nrm)) * sun_color.xyz;
 	//vec3 ambientLight = m.Kd * ambient_light.xyz;

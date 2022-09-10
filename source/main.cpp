@@ -35,7 +35,7 @@ int main()
 		});
 		win.Register(msgs);
 		win.SetWindowName("Dan Fernandez - Project - OpenGL");
-		if (+ogl.Create(win, GW::GRAPHICS::DEPTH_BUFFER_SUPPORT))
+		if (+ogl.Create(win, GW::GRAPHICS::DEPTH_BUFFER_SUPPORT /*| GW::GRAPHICS::MSAA_4X_SUPPORT*/))
 		{
 			Renderer renderer(win, ogl);
 			while (+win.ProcessWindowEvents())

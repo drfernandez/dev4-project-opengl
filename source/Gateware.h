@@ -72535,7 +72535,8 @@ namespace GW
 
 				gwindow = _gwindow;
 				//Check if valid _initMask was passed in
-				unsigned long long allowed = ~(GW::GRAPHICS::COLOR_10_BIT | GW::GRAPHICS::DEPTH_BUFFER_SUPPORT | GW::GRAPHICS::DEPTH_STENCIL_SUPPORT | GW::GRAPHICS::OPENGL_ES_SUPPORT);
+				unsigned long long allowed = ~(GW::GRAPHICS::COLOR_10_BIT | GW::GRAPHICS::DEPTH_BUFFER_SUPPORT | GW::GRAPHICS::DEPTH_STENCIL_SUPPORT | GW::GRAPHICS::OPENGL_ES_SUPPORT /*|
+					GW::GRAPHICS::MSAA_2X_SUPPORT | GW::GRAPHICS::MSAA_4X_SUPPORT | GW::GRAPHICS::MSAA_8X_SUPPORT | GW::GRAPHICS::MSAA_16X_SUPPORT*/);
 				if (allowed & _initMask)
 				{
 					return GReturn::FEATURE_UNSUPPORTED;
@@ -72585,8 +72586,8 @@ namespace GW
 
 				int pixelAttributes[] =
 				{
-					WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
 					WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+					WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
 					WGL_COLOR_BITS_ARB, 32,
 					WGL_RED_BITS_ARB, 8,
 					WGL_GREEN_BITS_ARB, 8,
@@ -72596,6 +72597,8 @@ namespace GW
 					WGL_STENCIL_BITS_ARB, 0,
 					WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
 					WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+					//WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,	// new
+					//WGL_SAMPLES_EXT, 2,					// new	[24][25]
 					0, 0
 				};
 
@@ -72616,6 +72619,17 @@ namespace GW
 					pixelAttributes[17] = 8;
 				}
 
+				//UINT numSamples =
+				//	_initMask & GW::GRAPHICS::MSAA_2X_SUPPORT |
+				//	_initMask & GW::GRAPHICS::MSAA_4X_SUPPORT |
+				//	_initMask & GW::GRAPHICS::MSAA_8X_SUPPORT |
+				//	_initMask & GW::GRAPHICS::MSAA_16X_SUPPORT;
+				//if (numSamples)
+				//{
+				//	numSamples = (numSamples / 64) * 2;
+				//	pixelAttributes[25] = numSamples;
+				//}
+
 				UINT pixelCount = 0;
 
 				PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = nullptr;
@@ -72628,12 +72642,13 @@ namespace GW
 				ReleaseDC(static_cast<HWND>(UWH.window), hdc);
 				wglDeleteContext(OGLcontext);
 
-				// Create an OpenGL 3.0 Context //
+				// Create an OpenGL 3.2 Context //
 				int contextAttributes[] =
 				{
 					WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
 					WGL_CONTEXT_MINOR_VERSION_ARB, 2,
 					WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+					//WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
 					0
 				};
 
@@ -72652,7 +72667,16 @@ namespace GW
 				if (_initMask & GW::GRAPHICS::DEPTH_STENCIL_SUPPORT)
 					glEnable(GL_STENCIL_TEST);
 
-				int pfValues[6] = { 0 };
+				//if (_initMask & GW::GRAPHICS::MSAA_2X_SUPPORT ||
+				//	_initMask & GW::GRAPHICS::MSAA_4X_SUPPORT ||
+				//	_initMask & GW::GRAPHICS::MSAA_8X_SUPPORT ||
+				//	_initMask & GW::GRAPHICS::MSAA_16X_SUPPORT)
+				//{
+				//	glEnable(GL_MULTISAMPLE);
+				//}
+
+
+				int pfValues[7] = { 0 };
 				int pfQuery[] =
 				{
 					WGL_RED_BITS_ARB,
@@ -72660,10 +72684,11 @@ namespace GW
 					WGL_BLUE_BITS_ARB,
 					WGL_ALPHA_BITS_ARB,
 					WGL_DEPTH_BITS_ARB,
-					WGL_STENCIL_BITS_ARB
+					WGL_STENCIL_BITS_ARB,
+					WGL_SAMPLES_EXT
 				};
 
-				ret = wglGetPixelFormatAttribivARB(hdc, pixelFormat, PFD_MAIN_PLANE, 6, pfQuery, pfValues);
+				ret = wglGetPixelFormatAttribivARB(hdc, pixelFormat, PFD_MAIN_PLANE, ARRAYSIZE(pfQuery), pfQuery, pfValues);
 
 				// CHECK IF INIT FLAGS WERE MET //
 				// 10 BIT COLOR //
@@ -72686,6 +72711,16 @@ namespace GW
 					if (pfValues[5] == 0 || !glIsEnabled(GL_STENCIL_TEST))
 						return GReturn::FEATURE_UNSUPPORTED;
 				}
+
+				//// MSAA SUPPORT //
+				//if (_initMask & GW::GRAPHICS::MSAA_2X_SUPPORT ||
+				//	_initMask & GW::GRAPHICS::MSAA_4X_SUPPORT ||
+				//	_initMask & GW::GRAPHICS::MSAA_8X_SUPPORT ||
+				//	_initMask & GW::GRAPHICS::MSAA_16X_SUPPORT)
+				//{
+				//	if (pfValues[6] == 0 || !glIsEnabled(GL_MULTISAMPLE))
+				//		return GReturn::FEATURE_UNSUPPORTED;
+				//}
 
 				// ES CONTEXT SUPPORT //
 				if (_initMask & GW::GRAPHICS::OPENGL_ES_SUPPORT)
